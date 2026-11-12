@@ -109,5 +109,12 @@ class GhCli:
 
     @staticmethod
     def _retryable(error: GhCliError) -> bool:
-        message = str(error)
+        message = str(error).lower()
+        if "timed out" in message:
+            # Local timeout raised by _run: the server may simply be slow.
+            return True
+        if "403" in message and "rate limit" in message:
+            # GitHub's primary rate-limit bucket answers 403 rather than 429.
+            # A plain 403 (permission denied) stays non-retryable.
+            return True
         return any(code in message for code in _RETRY_STATUSES)
